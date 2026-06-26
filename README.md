@@ -13,7 +13,7 @@ mkdir -p output
 # aba_ids.txt: one ABA structure ID per line
 docker run --rm \
   -v "$(pwd)/output:/output" \
-  -v "$(pwd)/aba_ids.txt:/aba_ids.txt" \
+  -v "$(pwd)/example_aba_ids.txt:/aba_ids.txt" \
   amnsbr/mouse_build_sc \
   --output-dir /output \
   --outfile-suffix N78 \
