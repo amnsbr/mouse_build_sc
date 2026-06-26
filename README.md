@@ -29,6 +29,18 @@ The image includes a pre-downloaded Allen cache at `/aba_cache`. To use your own
 
 On Apple Silicon, add `--platform linux/amd64` to `docker pull` and `docker run` if needed.
 
+Singularity can also be used:
+
+```bash
+singularity pull docker://amnsbr/mouse_build_sc
+```
+
+Then run the container with:
+
+```bash
+singularity run mouse_build_sc.sif ...
+```
+
 ## CLI options
 
 | Flag | Required | Description |
@@ -43,8 +55,8 @@ On Apple Silicon, add `--platform linux/amd64` to `docker pull` and `docker run`
 
 \* For more details on the excluded experiments, see the respective papers:
 
-- `knox`:[Knox et al. 2018](https://doi.org/10.1162/netn_a_00066)
-- `nathan`:[Nathan et al. 2026](https://doi.org/10.64898/2026.02.20.707091). Note that the `nathan` exclusion set also excludes the `knox` experiments.
+- `knox`: [Knox et al. 2018](https://doi.org/10.1162/netn_a_00066)
+- `nathan`: [Nathan et al. 2026](https://doi.org/10.64898/2026.02.20.707091). Note that the `nathan` exclusion set also excludes the `knox` experiments.
 
 ## Outputs
 
@@ -57,7 +69,7 @@ Written to `--output-dir`:
 - `source_mask_params.json`
 - `target_mask_params.json`
 
-## Build from source
+## Building the container
 
 ```bash
 git clone --recurse-submodules https://github.com/amnsbr/mouse_build_sc.git
