@@ -1,4 +1,5 @@
 # Based on https://github.com/vik16nathan/allen_connectome_qc/blob/main/after_manual_qc/build_model_new_excluded.py
+# and https://github.com/vik16nathan/allen_connectome_qc/blob/main/after_manual_qc/run_hyperparameter_selection_new_excluded.py
 # at commit 1595d9d
 from __future__ import division
 import argparse
@@ -31,6 +32,7 @@ HYPERPARAM_DIR = os.path.join(
 KNOX_EXCLUDED = os.path.join(SCRIPT_DIR, "knox_excluded.txt")
 NATHAN_EXCLUDED = os.path.join(SCRIPT_DIR, "nathan_excluded.txt")
 
+KERNEL = 'rbf' # TODO: make this an argument
 
 def load_excluded_experiments(excluded_arg):
     if excluded_arg == "none":
@@ -49,6 +51,29 @@ def load_excluded_experiments(excluded_arg):
         return [int(line.strip()) for line in f if line.strip()]
 
 
+def run_cv(cache, structure_id, experiments_exclude, kernel=None,
+                  model_option='standard'):
+    data = ModelData(cache, structure_id).get_voxel_data(
+        experiments_exclude=experiments_exclude)
+
+    # nested cross val
+    logging.debug("Performing cross validation: (%d samples, %d vars)",
+                  *data.projections.shape)
+    error = VoxelModelError(cache, data, kernel=kernel)
+    reg = error.single_cv(option=model_option)
+
+    logging.debug("score          : %.2f", reg.best_score_)
+    if kernel == 'polynomial':
+        kernel_params = dict(shape=reg.kernel.shape, support=reg.kernel.support)
+        logging.debug("optimal shape  : %.0f", kernel_params['shape'])
+        logging.debug("optimal support: %.0f", kernel_params['support'])
+    else:
+        kernel_params = dict(gamma=reg.gamma)
+        logging.debug("optimal gamma  : %.3f", kernel_params['gamma'])
+        logging.debug("(optimal sigma : %.3f)", 1 / np.sqrt(kernel_params['gamma']))
+
+    return kernel_params
+
 def fit_structure(cache, structure_id, experiments_exclude, kernel_params,
                   model_option="standard"):
     data = ModelData(cache, structure_id).get_voxel_data(
@@ -59,7 +84,7 @@ def fit_structure(cache, structure_id, experiments_exclude, kernel_params,
         nw_kwargs["kernel"] = Polynomial(**kernel_params)
     else:
         nw_kwargs["kernel"] = "rbf"
-        nw_kwargs["gamma"] = kernel_params.pop("gamma")
+        nw_kwargs["gamma"] = kernel_params["gamma"]
 
     error = VoxelModelError(cache, data)
     return data, error.fit(**nw_kwargs, option=model_option)
@@ -75,10 +100,13 @@ def main(args):
     
     manifest_file = os.path.join(args.aba_cache_dir, input_data.get('manifest_file'))
 
-    hyperparameter_json = os.path.join(
-        HYPERPARAM_DIR, "hyperparameters-%s.json" % args.model_option
-    )
-    hyperparameters = ju.read(hyperparameter_json)
+    if args.no_cv:
+        hyperparameter_json = os.path.join(
+            HYPERPARAM_DIR, "hyperparameters-%s.json" % args.model_option
+        )
+        hyperparameters = ju.read(hyperparameter_json)
+    else:
+        hyperparameters = {}
 
     cache = VoxelModelCache(manifest_file=manifest_file)
     structure_ids = [get_structure_id(cache, s) for s in structures]
@@ -90,6 +118,14 @@ def main(args):
     weights, nodes = [], []
     data = None
     for sid, sac in zip(structure_ids, structures):
+
+        if not args.no_cv:
+            logging.debug("Running cross validation for structure: %s", sac)
+            hyperparameters[sac] = run_cv(
+                cache, sid, experiments_exclude, kernel=KERNEL,
+                model_option=args.model_option
+            )
+
         logging.debug("Building model for structure: %s", sac)
 
         data, reg = fit_structure(
@@ -145,6 +181,8 @@ def main(args):
     get_metric("normalized_connection_strength").to_csv(
         os.path.join(output_dir, "normalized_connection_strength_%s.csv" % outfile_suffix))
 
+    ju.write(os.path.join(output_dir, "hyperparameters_%s.json" % outfile_suffix), hyperparameters)
+
     ju.write(os.path.join(output_dir, "target_mask_params.json"),
              dict(structure_ids=structure_ids, hemisphere_id=3))
     ju.write(os.path.join(output_dir, "source_mask_params.json"),
@@ -171,7 +209,7 @@ if __name__ == "__main__":
     parser.add_argument(
         "--outfile-suffix",
         required=True,
-        help="Suffix for output files, e.g. N78.",
+        help="Suffix for output files.",
     )
     parser.add_argument(
         "--model-option",
@@ -184,6 +222,14 @@ if __name__ == "__main__":
         default="nathan",
         help="Exclusion list: 'none', 'knox', 'nathan', or path to a txt file "
         "with one experiment ID per line.",
+    )
+    parser.add_argument(
+        "--no-cv",
+        action="store_true",
+        help="Do not perform cross validation to find optimal hyperparameters. "
+        "Instead, use the hyperparameters from Knox et al. 2018. "
+        "(Not recommended, given different set of experiments used in Knox et al. 2018 "
+        "to tune the hyperparameters.)"
     )
     parser.add_argument(
         "--aba-cache-dir",
