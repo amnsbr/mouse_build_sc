@@ -48,7 +48,7 @@ singularity run mouse_build_sc.sif ...
 | `--aba-cache-dir` | no | Allen cache root (default: `/aba_cache`) |
 | `--output-dir` | yes | Where CSV/JSON outputs are written |
 | `--outfile-suffix` | yes | Suffix for output filenames |
-| `--aba-ids` | no | File of ABA IDs; default = full 292-region order |
+| `--aba-ids` | no | File of ABA IDs; default = 292-region order used in Knox et al. 2018 |
 | `--excluded-experiments` | no | `nathan`, `knox`, `none`, or path to ID list (default: `nathan`)* |
 | `--model-option` | no | `standard` or `log` (default: `standard`) |
 | `--save-weights-nodes` | no | Also write weights/nodes `.npz` files |
@@ -57,6 +57,10 @@ singularity run mouse_build_sc.sif ...
 
 - `knox`: [Knox et al. 2018](https://doi.org/10.1162/netn_a_00066)
 - `nathan`: [Nathan et al. 2026](https://doi.org/10.64898/2026.02.20.707091). Note that the `nathan` exclusion set also excludes the `knox` experiments.
+
+> **⚠️ Warning**
+>
+> Using the `knox` exclusion set will not exactly reproduce the connectivity matrices published in Knox et al. 2018 (which are available [here](https://download.alleninstitute.org/publications/A_high_resolution_data-driven_model_of_the_mouse_connectome/)), because new experiments have been added to the dataset since then, and some experiments are no longer available (see [Nathan et al. 2026](https://doi.org/10.64898/2026.02.20.707091) for more details).
 
 ## Outputs
 
