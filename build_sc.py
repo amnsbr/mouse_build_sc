@@ -166,7 +166,7 @@ if __name__ == "__main__":
     parser.add_argument(
         "--aba-ids",
         help="Text file with ABA IDs, one per line. "
-        "If omitted, uses the 292-region ontological order.",
+        "If omitted, uses the 291-region ontological order used in Knox et al. 2018.",
     )
     parser.add_argument(
         "--outfile-suffix",

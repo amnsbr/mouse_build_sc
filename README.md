@@ -48,7 +48,7 @@ singularity run mouse_build_sc.sif ...
 | `--aba-cache-dir` | no | Allen cache root (default: `/aba_cache`) |
 | `--output-dir` | yes | Where CSV/JSON outputs are written |
 | `--outfile-suffix` | yes | Suffix for output filenames |
-| `--aba-ids` | no | File of ABA IDs; default = 292-region order used in Knox et al. 2018 |
+| `--aba-ids` | no | File of ABA IDs; default = 291-region order used in Knox et al. 2018 |
 | `--excluded-experiments` | no | `nathan`, `knox`, `none`, or path to ID list (default: `nathan`)* |
 | `--model-option` | no | `standard` or `log` (default: `standard`) |
 | `--save-weights-nodes` | no | Also write weights/nodes `.npz` files |
