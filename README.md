@@ -10,7 +10,7 @@ Published image: [`amnsbr/mouse_build_sc`](https://hub.docker.com/r/amnsbr/mouse
 docker pull amnsbr/mouse_build_sc
 
 mkdir -p output
-# aba_ids.txt: one ABA structure ID per line
+# aba_ids.txt: one region per line; ABA structure IDs joined by "+" are combined into one region
 docker run --rm \
   -v "$(pwd)/output:/output" \
   -v "$(pwd)/example_aba_ids.txt:/aba_ids.txt" \
@@ -48,7 +48,7 @@ singularity run mouse_build_sc.sif ...
 | `--aba-cache-dir` | no | Allen cache root (default: `/aba_cache`) |
 | `--output-dir` | yes | Where CSV/JSON outputs are written |
 | `--outfile-suffix` | yes | Suffix for output filenames |
-| `--aba-ids` | no | File of ABA IDs; default = 291-region order used in Knox et al. 2018 |
+| `--aba-ids` | no | File of ABA IDs, one region per line; several IDs joined by `+` (e.g. `31+972+44`) are combined into one region, labeled by the joined IDs in the outputs. Default = 291-region order used in Knox et al. 2018 |
 | `--excluded-experiments` | no | `nathan`, `knox`, `none`, or path to ID list (default: `nathan`)* |
 | `--model-option` | no | `standard` or `log` (default: `standard`) |
 | `--save-weights-nodes` | no | Also write weights/nodes `.npz` files |

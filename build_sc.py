@@ -148,24 +148,38 @@ def main(args):
     weights = weights[permutation, :]
 
     logging.debug("regionalizing voxel weights")
+    # each region is a group of one or more ABA IDs (several IDs are combined into one region)
     if args.aba_ids is None:
-        aba_ids = get_ordered_summary_structures(cache)
+        aba_id_groups = [[int(i)] for i in get_ordered_summary_structures(cache)]
     else:
         if not os.path.isfile(args.aba_ids):
             raise IOError("ABA IDs file not found: %s" % args.aba_ids)
-        aba_ids = np.loadtxt(args.aba_ids, dtype=np.int)
+        with open(args.aba_ids, "r") as f:
+            aba_id_groups = [
+                [int(i) for i in line.strip().split("+")] for line in f if line.strip()
+            ]
+    aba_ids = [i for group in aba_id_groups for i in group]
 
     source_mask = Mask.from_cache(cache, structure_ids=structure_ids, hemisphere_id=2)
     source_key = source_mask.get_key(structure_ids=aba_ids)
     ipsi_key = data.projection_mask.get_key(structure_ids=aba_ids, hemisphere_id=2)
     contra_key = data.projection_mask.get_key(structure_ids=aba_ids, hemisphere_id=1)
+    # label the voxels of combined regions by the first ID of their group
+    for group in aba_id_groups:
+        if len(group) > 1:
+            for key in (source_key, ipsi_key, contra_key):
+                key[np.isin(key, group[1:])] = group[0]
+    ordering = [group[0] for group in aba_id_groups]
     ipsi_model = RegionalizedModel(
-        weights, nodes, source_key, ipsi_key, ordering=aba_ids, dataframe=True)
+        weights, nodes, source_key, ipsi_key, ordering=ordering, dataframe=True)
     contra_model = RegionalizedModel(
-        weights, nodes, source_key, contra_key, ordering=aba_ids, dataframe=True)
+        weights, nodes, source_key, contra_key, ordering=ordering, dataframe=True)
+    # label combined regions by their IDs joined by "+"
+    region_labels = dict(
+        (group[0], "+".join(str(i) for i in group)) for group in aba_id_groups)
     get_metric = lambda s: pd.concat(
         (getattr(ipsi_model, s), getattr(contra_model, s)),
-        keys=("ipsi", "contra"), axis=1)
+        keys=("ipsi", "contra"), axis=1).rename(index=region_labels, columns=region_labels)
 
     output_dir = args.output_dir
     os.makedirs(output_dir, exist_ok=True)
@@ -203,7 +217,8 @@ if __name__ == "__main__":
     )
     parser.add_argument(
         "--aba-ids",
-        help="Text file with ABA IDs, one per line. "
+        help="Text file with ABA IDs, one region per line. Several IDs joined by '+' "
+        "(e.g. '31+972+44') are combined into one region. "
         "If omitted, uses the 291-region ontological order used in Knox et al. 2018.",
     )
     parser.add_argument(
